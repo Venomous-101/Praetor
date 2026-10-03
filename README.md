@@ -188,6 +188,10 @@ tests/                # unit + adversarial stress suites
 - **v0.3** — sandbox network egress control (default-deny outbound), signed tool packs
 - **v1.0** — PyPI release, optional OTLP exporter (as an install extra, keeping the core zero-dependency), docs site
 
+## Changelog
+
+Release history and notes: [CHANGELOG.md](CHANGELOG.md).
+
 ## Contributing
 
 Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Every PR must keep CI green — including the stress suite.
