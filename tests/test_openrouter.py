@@ -23,6 +23,7 @@ TOOLS = [
 def fake_response(body: dict) -> mock.MagicMock:
     response = mock.MagicMock()
     response.read.return_value = json.dumps(body).encode("utf-8")
+    response.__enter__.return_value = response  # `with urlopen(...) as r` yields r
     return response
 
 
