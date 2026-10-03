@@ -3,9 +3,10 @@
 > A security-first, zero-dependency agent runtime with an execution-based evaluation harness.
 
 [![CI](https://github.com/Venomous-101/Praetor/actions/workflows/ci.yml/badge.svg)](https://github.com/Venomous-101/Praetor/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/praetor-agent?label=pypi%3A%20praetor-agent)](https://pypi.org/project/praetor-agent/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)]()
-[![Version](https://img.shields.io/badge/version-0.2.0-blue)]()
+[![Version](https://img.shields.io/badge/version-0.3.0-blue)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)]()
 
 Praetor is named after the Roman magistrate whose job was to hold the line while everyone else ran wild. This library holds the line between an AI agent and the systems it touches.
@@ -26,7 +27,7 @@ Most agent demos show a model calling APIs. Production teams care about the hard
 ```mermaid
 flowchart LR
     T[Task prompt] --> A[Agent loop]
-    P[LLM provider<br/>Ollama or scripted replay] --> A
+    P[LLM provider<br/>Ollama / OpenRouter / scripted] --> A
     A --> V[Strict schema validation<br/>default-deny]
     V --> PL[Policy engine<br/>allowlist and budgets]
     PL --> G[Integrity guard<br/>tool spec fingerprints]
@@ -41,6 +42,14 @@ flowchart LR
 
 ## Installation
 
+From PyPI:
+
+```bash
+pip install praetor-agent
+```
+
+Or from source:
+
 ```bash
 git clone https://github.com/Venomous-101/Praetor.git
 cd Praetor
@@ -49,17 +58,21 @@ pip install -e .
 
 Requires Python 3.10 or newer. There are no runtime dependencies to install or review.
 
-Optional: a local model via [Ollama](https://ollama.com) (`ollama serve` on the default port). No cloud API keys are needed anywhere, by design.
+Connecting a model is your choice, by design:
+
+- **Local, private:** [Ollama](https://ollama.com) on the default port — no cloud API keys anywhere.
+- **Cloud, including free endpoints:** [OpenRouter](https://openrouter.ai) with a key from `PRAETOR_OPENROUTER_KEY` — or any OpenAI-compatible API via `PRAETOR_OPENROUTER_URL`.
 
 ## Quickstart
 
 ```bash
-python examples/quickstart.py       # deterministic end-to-end run, no model needed
+python examples/quickstart.py        # deterministic end-to-end run, no model needed
 python examples/run_benchmark.py    # built-in eval suite, pass^k report
-python examples/export_trace.py     # OTel GenAI-aligned JSONL trace export
+python examples/export_trace.py      # OTel GenAI-aligned JSONL trace export
+python examples/security_drill.py    # live pentest of all five security guarantees
 ```
 
-Connecting a real (local) model:
+Connecting a real local model (Ollama):
 
 ```python
 from praetor.llm.ollama import OllamaProvider
@@ -68,6 +81,19 @@ from praetor.tools.exec import PythonTool
 
 agent = Agent(OllamaProvider("llama3.1"), tools=[PythonTool()])
 result = agent.run("Compute the 20th Fibonacci number, then reply with only the number.")
+```
+
+Connecting a real cloud model (OpenRouter, free keys work):
+
+```python
+import os
+
+from praetor.llm.openrouter import OpenRouterProvider
+from praetor.runtime.agent import Agent
+from praetor.tools.exec import PythonTool
+
+os.environ.setdefault("PRAETOR_OPENROUTER_KEY", "<your key>")
+agent = Agent(OpenRouterProvider(), tools=[PythonTool()])  # defaults to a free model
 ```
 
 ## Using the runtime
@@ -82,7 +108,7 @@ workspace = Workspace("./agent-workspace")
 policy = ToolPolicy(allowed_tools=frozenset({"write_file", "read_file", "python"}))
 
 agent = Agent(
-    provider,                          # any LLMProvider (Ollama, scripted, your own)
+    provider,                          # any LLMProvider (Ollama, OpenRouter, scripted, your own)
     tools=[WriteFileTool(workspace), ReadFileTool(workspace), PythonTool()],
     policy=policy,                     # default-deny allowlist + per-tool/total budgets
     budget=Budget(max_steps=16),       # step and wall-clock limits
@@ -132,7 +158,7 @@ print(report.table())      # human-readable table
 print(report.to_dict())    # machine-readable: pass^k, pass@k, per-task rates
 ```
 
-Built-in, CI-safe tasks: filesystem write (verified by reading the file from disk), computation (verified against the known result), and injection resistance (success = the forbidden decoy tool is never invoked).
+Built-in, CI-safe tasks: filesystem write (verified by reading the file from disk), computation (verified against the known result and a successful execution), and injection resistance (success = the forbidden decoy tool is never invoked).
 
 ## Observability
 
@@ -155,7 +181,7 @@ Traces are **deterministic and content-addressed**: identical runs produce ident
 | Only allowed tools run | Default-deny allowlist policy; violations abort the run and are audited |
 | Strict inputs | JSON-schema validation of every tool call; unknown arguments always rejected |
 | No tampered tools | Tool specs fingerprinted at registration; a mismatch quarantines the tool |
-| Contained execution | Workspace realpath confinement (traversal and symlink escapes blocked); subprocess sandbox with rlimits, scrubbed environment, wall-clock kill |
+| Contained execution | Workspace realpath confinement (traversal and symlink escapes blocked); subprocess sandbox with rlimits (POSIX), scrubbed environment, wall-clock kill |
 | Injection resistance | Observations stripped of control characters, capped in size, wrapped in an untrusted-data envelope; known injection markers flagged in the audit log |
 | Bounded resource use | Per-tool and total call budgets, step budget, wall-clock budget, size caps on code and I/O |
 | No secrets in the repo | Zero dependencies by design; CI secret scan on every push |
@@ -170,27 +196,28 @@ praetor/
   runtime/            # agent loop, bounded memory
   security/           # schema validation, policy engine, sandbox, integrity guard
   tools/              # filesystem, sandboxed python, tool registry
-  llm/                # provider protocol: Ollama (local) + scripted replay
+  llm/                # provider protocol: Ollama (local), OpenRouter (cloud), scripted replay
   eval/               # execution-based harness, benchmark task pack
   observability/      # OTel GenAI-aligned trace export and run summaries
-examples/             # quickstart, benchmark runner, trace export
+examples/             # quickstart, benchmark, trace export, security drill, real-model agents
 tests/                # unit + adversarial stress suites
+docs/                 # publishing guide
 ```
 
 ## Testing and CI
 
-- **49 tests** across six files: unit suites for the runtime, tools, sandbox, schema, and eval, plus an adversarial stress suite (path-traversal fuzzing, size-cap enforcement, budget exhaustion under adversarial loops, injection storms, determinism).
+- **56 tests** across eight files: unit suites for the runtime, tools, sandbox, schema, eval, and the OpenRouter provider (fully mocked HTTP, no network in CI), plus an adversarial stress suite (path-traversal fuzzing, size-cap enforcement, budget exhaustion under adversarial loops, injection storms, determinism).
 - CI runs the full suite on Python 3.10 and 3.12, a clean-venv install smoke test on 3.11 (installs the built package into a fresh virtualenv and runs an end-to-end agent task), and a secret scan.
 - A failing test step automatically files a GitHub issue with the full log for fast diagnosis.
 
 ## Roadmap
 
-- **v0.3** — sandbox network egress control (default-deny outbound), signed tool packs
-- **v1.0** — PyPI release, optional OTLP exporter (as an install extra, keeping the core zero-dependency), docs site
+- **v0.4** — sandbox network egress control (default-deny outbound), signed tool packs
+- **v1.0** — optional OTLP exporter (as an install extra, keeping the core zero-dependency), docs site
 
 ## Changelog
 
-Release history and notes: [CHANGELOG.md](CHANGELOG.md).
+Release history and notes: [CHANGELOG.md](CHANGELOG.md). Releases are published to PyPI automatically via trusted publishing ([docs/PUBLISHING.md](docs/PUBLISHING.md)).
 
 ## Contributing
 

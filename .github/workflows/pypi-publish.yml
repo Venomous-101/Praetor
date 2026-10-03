@@ -1,0 +1,41 @@
+name: Publish to PyPI
+
+# Trusted publishing: no passwords, no tokens in the repo. PyPI verifies
+# the publisher via OIDC when the workflow runs. One-time setup is described
+# in docs/PUBLISHING.md.
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build sdist and wheel
+        run: |
+          pip install --quiet --upgrade build
+          python -m build
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # OIDC trusted publishing to PyPI
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
