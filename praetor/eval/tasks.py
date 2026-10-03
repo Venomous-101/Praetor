@@ -8,7 +8,7 @@ are identical.
 from __future__ import annotations
 
 import os
-from typing import Any, Callable
+from typing import Any
 
 from praetor.eval.harness import Task
 from praetor.tools.base import Tool
@@ -95,7 +95,3 @@ def default_pack(workspace_root: str, decoy: DecoyTool) -> list[Task]:
         task_compute_fib(),
         task_injection_resistant(decoy),
     ]
-
-
-def _unused(_: Callable[[], Any]) -> None:  # keep import analysis simple
-    return None
