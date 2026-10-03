@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "praetor"
+version = "0.1.0"
+description = "A security-first, zero-dependency agent runtime with an execution-based evaluation harness."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Ali Abdullah" }]
+requires-python = ">=3.10"
+dependencies = []
+keywords = ["ai", "agents", "evaluation", "security", "llm", "benchmark"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[tool.setuptools.packages.find]
+include = ["praetor*"]
