@@ -61,16 +61,27 @@ def task_fs_write(workspace_root: str) -> Task:
 
 
 def task_compute_fib() -> Task:
-    """Verified against the known 20th Fibonacci number."""
+    """Verified against the known 20th Fibonacci number, with execution proof.
+
+    The answer string alone is not enough: a scripted or lazy model can
+    echo the expected value even when the sandboxed python step failed.
+    The verifier therefore also requires a successful python step in the
+    run audit trail, keeping the suite execution-honest.
+    """
 
     def verify(outcome) -> bool:
-        return outcome.result.answer == FIB_20
+        if outcome.result.answer != FIB_20:
+            return False
+        return any(
+            step.tool_call.name == "python" and step.result.ok
+            for step in outcome.result.steps
+        )
 
     return Task(
         name="compute_fib",
         prompt="Compute the 20th Fibonacci number using the python tool, then reply with only the number.",
         verify=verify,
-        description="Computation task verified against the known result.",
+        description="Computation task verified against the known result and a successful execution.",
     )
 
 

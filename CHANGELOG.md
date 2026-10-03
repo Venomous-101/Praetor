@@ -2,6 +2,13 @@
 
 All notable changes to Praetor are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **Windows sandbox**: sandboxed Python execution crashed at startup with `Fatal Python error: _Py_HashRandomization_Init` because the scrubbed environment dropped `SystemRoot`, which the Windows CryptoAPI requires to seed hash randomization. The sandbox now preserves the non-secret Windows system variables (`SystemRoot`, `SystemDrive`, `windir`, `ComSpec`, `PathExt`, `Temp`, `Tmp`) and rebuilds `PATH` from the interpreter location instead of the POSIX default. POSIX behavior is unchanged.
+- **compute_fib verifier**: the built-in eval accepted the scripted answer even when the sandboxed `python` step had failed, so a broken execution could still count as a pass. The verifier now additionally requires a successful `python` step in the run audit trail, keeping the suite execution-honest.
+
 ## [0.2.0] - 2026-10-03
 
 ### Added
@@ -37,5 +44,6 @@ All notable changes to Praetor are documented here. The format follows [Keep a C
 - **Execution-based eval harness**: tasks pass only when executable verifiers say so; pass^k (all k trials) and pass@k (at least one) metrics; built-in CI-safe task pack (fs write, computation, injection resistance).
 - **Tests and CI**: 30 tests; GitHub Actions matrix (Python 3.10 / 3.12), secret scan, failure-to-issue reporting.
 
+[Unreleased]: https://github.com/Venomous-101/Praetor/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/Venomous-101/Praetor/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Venomous-101/Praetor/releases/tag/v0.1.0

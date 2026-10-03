@@ -4,6 +4,13 @@ Threat model: agent-produced Python is untrusted input. This module is a
 process-level barrier — isolation flags, scrubbed environment, rlimits,
 wall-clock kill, bounded output — not a kernel container. For hostile
 multi-tenant workloads, additionally use gVisor or Firecracker.
+
+Platform notes: POSIX applies rlimits via preexec. Windows has no
+rlimits, so it relies on isolation flags, the scrubbed environment,
+bounded output, and the wall-clock kill. The Windows environment keeps
+the non-secret system variables (SystemRoot and friends) because the
+CryptoAPI requires them to seed Python hash randomization — without
+them, every child Python dies before executing a single line.
 """
 from __future__ import annotations
 
@@ -15,6 +22,18 @@ from dataclasses import dataclass
 
 MAX_OUTPUT_BYTES = 8192
 MAX_CODE_BYTES = 65536
+
+# Non-secret Windows system variables a child process needs to boot.
+# Everything else from the user environment stays scrubbed.
+WINDOWS_SYSTEM_VARS = (
+    "SYSTEMROOT",
+    "SYSTEMDRIVE",
+    "WINDIR",
+    "COMSPEC",
+    "PATHEXT",
+    "TEMP",
+    "TMP",
+)
 
 
 @dataclass(frozen=True)
@@ -31,6 +50,34 @@ def _clip(text: str) -> tuple[str, bool]:
     data = text.encode("utf-8", "replace")[:MAX_OUTPUT_BYTES]
     clipped = data.decode("utf-8", "ignore")
     return clipped, len(clipped) < len(text)
+
+
+def _build_env(cwd: str) -> dict[str, str]:
+    """Minimal deterministic environment; user secrets never cross the barrier."""
+    env = {
+        "PATH": "/usr/local/bin:/usr/bin:/bin",
+        "HOME": cwd,
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONHASHSEED": "0",
+    }
+    if os.name == "nt":
+        for name in WINDOWS_SYSTEM_VARS:
+            value = os.environ.get(name)
+            if value:
+                env[name] = value
+        # Rebuild PATH from the interpreter location and the system dirs;
+        # the user's PATH (which may point at wrappers or shims) stays out.
+        system_root = env.get("SYSTEMROOT", "C:" + chr(92) + "Windows")
+        env["PATH"] = os.pathsep.join(
+            [
+                os.path.dirname(sys.executable),
+                os.path.join(system_root, "System32"),
+                system_root,
+            ]
+        )
+    return env
 
 
 def _make_preexec(cpu_s: int, mem_mb: int):
@@ -65,14 +112,7 @@ def run_python_sandboxed(
         raise ValueError("source exceeds the maximum code size")
 
     cwd = workdir or tempfile.mkdtemp(prefix="praetor-sbx-")
-    env = {
-        "PATH": "/usr/local/bin:/usr/bin:/bin",
-        "HOME": cwd,
-        "LANG": "C.UTF-8",
-        "LC_ALL": "C.UTF-8",
-        "PYTHONDONTWRITEBYTECODE": "1",
-        "PYTHONHASHSEED": "0",
-    }
+    env = _build_env(cwd)
     try:
         completed = subprocess.run(
             [sys.executable, "-I", "-S", "-"],

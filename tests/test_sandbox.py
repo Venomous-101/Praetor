@@ -1,6 +1,9 @@
 import os
+import sys
 import unittest
+from unittest import mock
 
+from praetor.security import sandbox
 from praetor.security.sandbox import run_python_sandboxed
 
 
@@ -47,6 +50,32 @@ time.sleep(30)
     def test_oversized_source_is_rejected(self):
         with self.assertRaises(ValueError):
             run_python_sandboxed("#" + ("x" * 100000))
+
+
+class SandboxEnvTests(unittest.TestCase):
+    def test_windows_env_keeps_system_vars_and_rebuilds_path(self):
+        with mock.patch.object(
+            sandbox.os, "name", "nt"
+        ), mock.patch.dict(
+            sandbox.os.environ,
+            {"SYSTEMROOT": "C:/Windows", "COMSPEC": "C:/Windows/System32/cmd.exe"},
+        ):
+            env = sandbox._build_env("workdir")
+        self.assertEqual(env["SYSTEMROOT"], "C:/Windows")
+        self.assertEqual(env["COMSPEC"], "C:/Windows/System32/cmd.exe")
+        self.assertIn(os.path.dirname(sys.executable), env["PATH"])
+        self.assertNotIn("/usr/local/bin:/usr/bin:/bin", env["PATH"])
+        self.assertNotIn("SYSTEMDRIVE", env)  # not set in the patched environ
+
+    def test_posix_env_stays_scrubbed_and_static(self):
+        with mock.patch.object(sandbox.os, "name", "posix"), mock.patch.dict(
+            sandbox.os.environ, {"SYSTEMROOT": "C:/Windows"}
+        ):
+            env = sandbox._build_env("workdir")
+        self.assertNotIn("SYSTEMROOT", env)
+        self.assertEqual(env["PATH"], "/usr/local/bin:/usr/bin:/bin")
+        self.assertEqual(env["HOME"], "workdir")
+        self.assertEqual(env["PYTHONHASHSEED"], "0")
 
 
 if __name__ == "__main__":
