@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from typing import Any
 
 from praetor.llm.base import LLMProvider, Message
 from praetor.runtime.memory import BoundedHistory
@@ -61,9 +62,11 @@ class Agent:
 
     def run(self, task: str, history: BoundedHistory | None = None) -> AgentResult:
         started = time.monotonic()
+        wall_start = time.time()
         steps: list[Step] = []
         errors: list[str] = []
         executed = 0
+        usage_totals: dict[str, Any] = {}
         memory = history if history is not None else BoundedHistory()
 
         memory.append(Message(role="system", content=self.system_prompt))
@@ -82,6 +85,11 @@ class Agent:
                 errors.append("provider error: " + str(exc))
                 status = RunStatus.ERROR
                 break
+
+            if turn.usage:
+                for key, value in turn.usage.items():
+                    if isinstance(value, (int, float)) and not isinstance(value, bool):
+                        usage_totals[str(key)] = usage_totals.get(str(key), 0) + value
 
             if not turn.tool_calls:
                 answer = (turn.content or "").strip()
@@ -121,6 +129,8 @@ class Agent:
             tool_calls=executed,
             errors=errors,
             elapsed_s=time.monotonic() - started,
+            usage=usage_totals or None,
+            started_at=wall_start,
         )
 
     def _execute(self, call: ToolCall, steps: list[Step], errors: list[str]) -> str:

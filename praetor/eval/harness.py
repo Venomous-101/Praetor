@@ -47,6 +47,20 @@ class TaskReport:
     def pass_rate(self) -> float:
         return self.successes / self.trials if self.trials else 0.0
 
+    def to_dict(self) -> dict[str, Any]:
+        """Serializable report for storage, comparison, and CI artifacts."""
+        return {
+            "task": self.task,
+            "trials": self.trials,
+            "successes": self.successes,
+            "pass_all": self.pass_all,
+            "pass_any": self.pass_any,
+            "pass_rate": self.pass_rate,
+            "mean_steps": self.mean_steps,
+            "mean_elapsed_s": self.mean_elapsed_s,
+            "failures": list(self.failures),
+        }
+
 
 @dataclass
 class SuiteReport:
@@ -63,6 +77,14 @@ class SuiteReport:
         if not self.tasks:
             return 0.0
         return sum(1 for t in self.tasks if t.pass_any) / len(self.tasks)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serializable suite verdicts (pass^k and pass@k included)."""
+        return {
+            "tasks": [task.to_dict() for task in self.tasks],
+            "pass^k": self.pass_hat_k,
+            "pass@k": self.pass_at_k,
+        }
 
     def table(self) -> str:
         header = f"{'task':<22}{'trials':>7}{'pass':>6}{'pass^k':>8}{'mean steps':>12}"

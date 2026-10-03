@@ -73,3 +73,30 @@ class AgentResult:
     tool_calls: int = 0
     errors: list[str] = field(default_factory=list)
     elapsed_s: float = 0.0
+    usage: dict[str, Any] | None = None
+    started_at: float | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serializable audit view. Raw tool outputs are deliberately excluded:
+        the audit trail records what was called and how it ended, never the
+        (possibly sensitive) payload bytes that flowed through a tool."""
+        return {
+            "status": self.status.value,
+            "answer": self.answer,
+            "tool_calls": self.tool_calls,
+            "elapsed_s": self.elapsed_s,
+            "started_at": self.started_at,
+            "usage": dict(self.usage) if self.usage else None,
+            "errors": list(self.errors),
+            "steps": [
+                {
+                    "index": step.index,
+                    "tool": step.tool_call.name,
+                    "arguments": dict(step.tool_call.arguments),
+                    "ok": step.result.ok,
+                    "error": step.result.error,
+                    "duration_s": step.duration_s,
+                }
+                for step in self.steps
+            ],
+        }
