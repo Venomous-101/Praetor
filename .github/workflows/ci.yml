@@ -38,6 +38,45 @@ jobs:
           jq -Rs --arg title "CI test failure (Python ${{ matrix.python-version }}, commit ${{ github.sha }})" '{title: $title, body: .}' < test-output.log > /tmp/issue-body.json
           curl -sf -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/Venomous-101/Praetor/issues -d @/tmp/issue-body.json
 
+  install-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Clean-venv install and end-to-end smoke test
+        run: |
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install --quiet --upgrade pip
+          /tmp/smoke/bin/pip install --quiet .
+          cd /tmp
+          /tmp/smoke/bin/python - <<'PY'
+          import praetor
+
+          from praetor.llm.base import ModelTurn
+          from praetor.llm.scripted import ScriptedProvider
+          from praetor.observability import spans_from_result, summarize
+          from praetor.runtime.agent import Agent
+          from praetor.tools.exec import PythonTool
+          from praetor.types import RunStatus, ToolCall
+
+          assert praetor.__version__, "praetor version missing"
+
+          turns = [
+              ModelTurn(tool_calls=(ToolCall(id="c1", name="python", arguments={"code": "print(2 + 2)"}),)),
+              ModelTurn(content="4"),
+          ]
+          result = Agent(ScriptedProvider(turns), tools=[PythonTool()]).run("compute")
+          assert result.status == RunStatus.OK, result.status
+          assert result.answer == "4", result.answer
+          assert result.tool_calls == 1
+          spans = spans_from_result(result)
+          assert spans[0]["name"] == "invoke_agent", spans[0]["name"]
+          assert len(spans) == 2
+          print("install smoke ok:", summarize(result))
+          PY
+
   security:
     runs-on: ubuntu-latest
     steps:
