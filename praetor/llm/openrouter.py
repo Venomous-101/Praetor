@@ -21,7 +21,9 @@ from praetor.llm.base import LLMProvider, Message, ModelTurn
 from praetor.types import ToolCall
 
 DEFAULT_URL = "https://openrouter.ai/api/v1"
-DEFAULT_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
+# Free model slugs come and go on OpenRouter; if this default ever
+# 404s, pick a current free model at https://openrouter.ai/models.
+DEFAULT_MODEL = "inclusionai/ling-3.1-flash"
 
 
 def _openai_messages(messages: list[Message]) -> list[dict[str, Any]]:
@@ -106,6 +108,14 @@ class OpenRouterProvider(LLMProvider):
         try:
             with urllib.request.urlopen(request, timeout=self.timeout_s) as response:
                 data = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            try:
+                detail = exc.read().decode("utf-8", "replace")[:200]
+            except (OSError, ValueError, AttributeError):
+                detail = ""
+            raise RuntimeError(
+                "openrouter HTTP " + str(exc.code) + ": " + detail
+            ) from exc
         except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
             raise RuntimeError("openrouter request failed: " + str(exc)) from exc
 

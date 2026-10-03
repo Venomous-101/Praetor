@@ -1,6 +1,8 @@
+import io
 import json
 import os
 import unittest
+import urllib.error
 from unittest import mock
 
 from praetor.llm.base import Message
@@ -128,6 +130,22 @@ class OpenRouterProviderTests(unittest.TestCase):
             urlopen.side_effect = OSError("connection refused")
             with self.assertRaises(RuntimeError):
                 provider.complete([Message(role="user", content="hi")], [])
+
+    def test_http_error_body_is_included(self):
+        provider = OpenRouterProvider(api_key="k")
+        error = urllib.error.HTTPError(
+            "https://openrouter.ai/api/v1/chat/completions",
+            404,
+            "Not Found",
+            {},
+            io.BytesIO(b'{"error": {"message": "No endpoints found"}}'),
+        )
+        with mock.patch("praetor.llm.openrouter.urllib.request.urlopen") as urlopen:
+            urlopen.side_effect = error
+            with self.assertRaises(RuntimeError) as ctx:
+                provider.complete([Message(role="user", content="hi")], [])
+        self.assertIn("404", str(ctx.exception))
+        self.assertIn("No endpoints found", str(ctx.exception))
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ Runs:  python examples/openrouter_agent.py
 
 No scripted provider: the real model decides on its own whether to
 call the python tool, under full Praetor supervision. The default model
-is a free Llama 3.1 endpoint; pass model= to choose any other.
+is a current free OpenRouter model; pass model= to choose any other.
 """
 import os
 
@@ -24,7 +24,7 @@ def main() -> None:
     if not os.environ.get("PRAETOR_OPENROUTER_KEY"):
         print("Set PRAETOR_OPENROUTER_KEY first (free key: https://openrouter.ai/keys)")
         return
-    provider = OpenRouterProvider()  # defaults to a free Llama 3.1 model
+    provider = OpenRouterProvider()  # defaults to a current free model
     agent = Agent(provider, tools=[PythonTool()])
     result = agent.run(
         "Use the python tool to compute the 20th Fibonacci number, "

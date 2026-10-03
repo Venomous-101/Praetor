@@ -206,7 +206,7 @@ docs/                 # publishing guide
 
 ## Testing and CI
 
-- **56 tests** across eight files: unit suites for the runtime, tools, sandbox, schema, eval, and the OpenRouter provider (fully mocked HTTP, no network in CI), plus an adversarial stress suite (path-traversal fuzzing, size-cap enforcement, budget exhaustion under adversarial loops, injection storms, determinism).
+- **57 tests** across eight files: unit suites for the runtime, tools, sandbox, schema, eval, and the OpenRouter provider (fully mocked HTTP, no network in CI), plus an adversarial stress suite (path-traversal fuzzing, size-cap enforcement, budget exhaustion under adversarial loops, injection storms, determinism).
 - CI runs the full suite on Python 3.10 and 3.12, a clean-venv install smoke test on 3.11 (installs the built package into a fresh virtualenv and runs an end-to-end agent task), and a secret scan.
 - A failing test step automatically files a GitHub issue with the full log for fast diagnosis.
 

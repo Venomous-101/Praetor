@@ -6,7 +6,7 @@ All notable changes to Praetor are documented here. The format follows [Keep a C
 
 ### Added
 
-- **OpenRouter provider** (`praetor.llm.openrouter`, stdlib-only): connect any cloud model through OpenRouter — including free endpoints — or any OpenAI-compatible API by pointing `PRAETOR_OPENROUTER_URL` at it. The API key is read from `PRAETOR_OPENROUTER_KEY` and never logged, stored, or handed to tools. Five unit tests cover the wire format with fully mocked HTTP (no network in CI).
+- **OpenRouter provider** (`praetor.llm.openrouter`, stdlib-only): connect any cloud model through OpenRouter — including free endpoints — or any OpenAI-compatible API by pointing `PRAETOR_OPENROUTER_URL` at it. The API key is read from `PRAETOR_OPENROUTER_KEY` and never logged, stored, or handed to tools. Six unit tests cover the wire format with fully mocked HTTP (no network in CI).
 - **`examples/security_drill.py`**: a live pentest of the security layer. Five drills attack the five guarantees (default-deny policy, sandbox containment, injection detection, workspace confinement, audit trail) and print PASS or FAIL from real executions on the host machine - no mocks, no scripted results.
 - **`examples/ollama_agent.py`**: run Praetor against a real local model through Ollama; the model itself decides when to call the python tool, under full Praetor supervision.
 - **`examples/openrouter_agent.py`**: same idea against a real cloud model via OpenRouter, free key included path.
@@ -16,10 +16,11 @@ All notable changes to Praetor are documented here. The format follows [Keep a C
 
 - **Windows sandbox**: sandboxed Python execution crashed at startup with `Fatal Python error: _Py_HashRandomization_Init` because the scrubbed environment dropped `SystemRoot`, which the Windows CryptoAPI requires to seed hash randomization. The sandbox now preserves the non-secret Windows system variables (`SystemRoot`, `SystemDrive`, `windir`, `ComSpec`, `PathExt`, `Temp`, `Tmp`) and rebuilds `PATH` from the interpreter location instead of the POSIX default. POSIX behavior is unchanged.
 - **compute_fib verifier**: the built-in eval accepted the scripted answer even when the sandboxed `python` step had failed, so a broken execution could still count as a pass. The verifier now additionally requires a successful `python` step in the run audit trail, keeping the suite execution-honest.
+- **OpenRouter default model**: the default slug pointed at a free endpoint that no longer exists on OpenRouter, so every real request failed with a bare HTTP 404. The provider now defaults to a current free model, and on HTTP errors it raises the status code plus the first 200 bytes of the response body, so failures are diagnosable at a glance.
 
 ### Changed
 
-- Version bumped to 0.3.0. The PyPI distribution name is `praetor-agent` (the `praetor` name is already taken on PyPI); the import name stays `praetor`. CI now runs 56 tests per matrix entry.
+- Version bumped to 0.3.0. The PyPI distribution name is `praetor-agent` (the `praetor` name is already taken on PyPI); the import name stays `praetor`. CI now runs 57 tests per matrix entry.
 
 ## [0.2.0] - 2026-10-03
 
