@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     strategy:
       fail-fast: false
       matrix:
@@ -21,7 +24,19 @@ jobs:
       - name: Install (zero runtime dependencies)
         run: pip install -e .
       - name: Unit tests
-        run: python -m unittest discover -s tests -v
+        run: |
+          set +e
+          python -m unittest discover -s tests -v > test-output.log 2>&1
+          code=$?
+          cat test-output.log
+          exit $code
+      - name: Report failure as an issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          jq -Rs --arg title "CI test failure (Python ${{ matrix.python-version }}, commit ${{ github.sha }})" '{title: $title, body: .}' < test-output.log > /tmp/issue-body.json
+          curl -sf -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/Venomous-101/Praetor/issues -d @/tmp/issue-body.json
 
   security:
     runs-on: ubuntu-latest
