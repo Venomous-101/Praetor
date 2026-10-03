@@ -54,18 +54,22 @@ time.sleep(30)
 
 class SandboxEnvTests(unittest.TestCase):
     def test_windows_env_keeps_system_vars_and_rebuilds_path(self):
+        # clear=True isolates the test from the host environment so the
+        # assertions hold identically on Linux CI and on a Windows laptop.
         with mock.patch.object(
             sandbox.os, "name", "nt"
         ), mock.patch.dict(
             sandbox.os.environ,
             {"SYSTEMROOT": "C:/Windows", "COMSPEC": "C:/Windows/System32/cmd.exe"},
+            clear=True,
         ):
             env = sandbox._build_env("workdir")
         self.assertEqual(env["SYSTEMROOT"], "C:/Windows")
         self.assertEqual(env["COMSPEC"], "C:/Windows/System32/cmd.exe")
+        self.assertNotIn("SYSTEMDRIVE", env)  # absent from the host env: stays scrubbed
         self.assertIn(os.path.dirname(sys.executable), env["PATH"])
         self.assertNotIn("/usr/local/bin:/usr/bin:/bin", env["PATH"])
-        self.assertNotIn("SYSTEMDRIVE", env)  # not set in the patched environ
+        self.assertNotIn("SYSTEMDRIVE", env["PATH"].split(os.pathsep))
 
     def test_posix_env_stays_scrubbed_and_static(self):
         with mock.patch.object(sandbox.os, "name", "posix"), mock.patch.dict(
