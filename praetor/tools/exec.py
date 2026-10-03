@@ -5,11 +5,16 @@ import tempfile
 from typing import Any
 
 from praetor.security.sandbox import run_python_sandboxed
-from praetor.tools.base import Tool
+from praetor.tools.base import Tool, ToolError
 
 
 class PythonTool(Tool):
-    """Executes untrusted Python inside the process-level sandbox."""
+    """Executes untrusted Python inside the process-level sandbox.
+
+    A script that exits non-zero, or that hits the wall-clock limit, is a
+    tool failure: it raises ToolError so the agent loop can degrade
+    gracefully instead of treating a crash as a normal observation.
+    """
 
     def __init__(self, workdir: str | None = None) -> None:
         self._workdir = workdir
@@ -38,6 +43,8 @@ class PythonTool(Tool):
             parts.append("[stderr] " + result.stderr)
         if result.timed_out:
             parts.append("[sandbox] execution timed out")
+        if not result.ok:
+            raise ToolError(chr(10).join(parts) or "sandboxed execution failed")
         if not parts:
             return "(no output)"
         return chr(10).join(parts)
