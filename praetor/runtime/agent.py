@@ -5,7 +5,9 @@ Priority order of design goals:
     integrity-verified before it executes.
  2. Determinism: identical inputs and model turns produce identical runs.
  3. Graceful degradation: tool failures become observations, not crashes.
- 4. Auditability: every step is recorded with its result and duration.
+ 4. Auditability: every step is recorded with its result and duration;
+    denied attempts stay in the audit trail but are not counted as
+    executed tool calls.
 """
 from __future__ import annotations
 
@@ -42,7 +44,7 @@ class Agent:
         tools,
         *,
         policy: ToolPolicy | None = None,
-        budget: "Budget | None" = None,
+        budget: Budget | None = None,
         system_prompt: str | None = None,
     ) -> None:
         self.provider = provider
@@ -61,6 +63,7 @@ class Agent:
         started = time.monotonic()
         steps: list[Step] = []
         errors: list[str] = []
+        executed = 0
         memory = history if history is not None else BoundedHistory()
 
         memory.append(Message(role="system", content=self.system_prompt))
@@ -94,6 +97,8 @@ class Agent:
 
             for call in turn.tool_calls:
                 outcome = self._execute(call, steps, errors)
+                if outcome != "policy_violation":
+                    executed += 1
                 memory.append(
                     Message(
                         role="tool",
@@ -113,7 +118,7 @@ class Agent:
             status=status,
             answer=answer,
             steps=steps,
-            tool_calls=len(steps),
+            tool_calls=executed,
             errors=errors,
             elapsed_s=time.monotonic() - started,
         )
