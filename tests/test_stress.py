@@ -53,8 +53,17 @@ class PathStressTests(unittest.TestCase):
             self.write.invoke({"path": "evil\x00name", "content": "no"})
 
     def test_deeply_nested_paths_cannot_escape(self):
-        path = "a/" * 40 + "../" * 45 + "landed.txt"
-        self.write.invoke({"path": path, "content": "inside"})
+        # More ".." than depth: the resolved path leaves the workspace
+        # (POSIX does not clamp ".." at a directory), so it must be
+        # rejected outright.
+        escape = "a/" * 40 + "../" * 45 + "landed.txt"
+        with self.assertRaises(ToolError):
+            self.write.invoke({"path": escape, "content": "outside"})
+
+        # Exactly climbing back to the root: allowed, and the file lands
+        # inside the workspace.
+        returns = "a/" * 40 + "../" * 40 + "landed.txt"
+        self.write.invoke({"path": returns, "content": "inside"})
         self.assertTrue(os.path.isfile(os.path.join(self.workspace.root, "landed.txt")))
 
     def test_unicode_paths_roundtrip(self):
