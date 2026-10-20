@@ -147,6 +147,59 @@ class OpenRouterProviderTests(unittest.TestCase):
         self.assertIn("404", str(ctx.exception))
         self.assertIn("No endpoints found", str(ctx.exception))
 
+    def test_model_from_environment(self):
+        with mock.patch.dict(os.environ, {"PRAETOR_OPENROUTER_MODEL": "env/model"}):
+            provider = OpenRouterProvider(api_key="k")
+            self.assertEqual(provider.model, "env/model")
+            explicit = OpenRouterProvider(api_key="k", model="explicit/model")
+            self.assertEqual(explicit.model, "explicit/model")
+
+    def test_rate_limited_request_retries_once(self):
+        provider = OpenRouterProvider(api_key="k")
+        rate_limited = urllib.error.HTTPError(
+            "https://openrouter.ai/api/v1/chat/completions",
+            429,
+            "Too Many Requests",
+            {},
+            io.BytesIO(b'{"error": {"message": "rate limited"}}'),
+        )
+        with mock.patch(
+            "praetor.llm.openrouter.urllib.request.urlopen"
+        ) as urlopen, mock.patch(
+            "praetor.llm.openrouter.time.sleep"
+        ) as sleep:
+            urlopen.side_effect = [
+                rate_limited,
+                fake_response({"choices": [{"message": {"content": "ok"}}]}),
+            ]
+            turn = provider.complete([Message(role="user", content="hi")], [])
+        self.assertEqual(turn.content, "ok")
+        self.assertEqual(sleep.call_count, 1)
+
+    def test_persistent_rate_limit_raises_with_body(self):
+        provider = OpenRouterProvider(api_key="k")
+
+        def rate_limited() -> urllib.error.HTTPError:
+            return urllib.error.HTTPError(
+                "https://openrouter.ai/api/v1/chat/completions",
+                429,
+                "Too Many Requests",
+                {},
+                io.BytesIO(b'{"error": {"message": "still rate limited"}}'),
+            )
+
+        with mock.patch(
+            "praetor.llm.openrouter.urllib.request.urlopen"
+        ) as urlopen, mock.patch(
+            "praetor.llm.openrouter.time.sleep"
+        ) as sleep:
+            urlopen.side_effect = [rate_limited(), rate_limited()]
+            with self.assertRaises(RuntimeError) as ctx:
+                provider.complete([Message(role="user", content="hi")], [])
+        self.assertIn("429", str(ctx.exception))
+        self.assertIn("still rate limited", str(ctx.exception))
+        self.assertEqual(sleep.call_count, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

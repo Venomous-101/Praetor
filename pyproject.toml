@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "praetor-agent"
-version = "0.3.0"
+version = "0.3.1"
 description = "A security-first, zero-dependency agent runtime with an execution-based evaluation harness."
 readme = "README.md"
 license = { text = "MIT" }

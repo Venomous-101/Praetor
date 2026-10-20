@@ -2,6 +2,18 @@
 
 All notable changes to Praetor are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] - 2026-10-20
+
+### Added
+
+- **`PRAETOR_OPENROUTER_MODEL` environment override**: pick the OpenRouter model without touching code; an explicit `model=` argument still wins over the environment. Useful when a free endpoint changes and you just want to point at another one.
+- **Automatic retry on HTTP 429**: free OpenRouter endpoints are sometimes rate-limited upstream for a moment. The provider now waits `retry_wait_s` (5 seconds by default) and retries the request once before surfacing the error; a persistent rate limit is reported with the upstream error body, same as every other HTTP failure.
+- **`examples/real_work.py`**: a real multi-tool task against a real cloud model — the model computes with the sandboxed `python` tool, then writes a markdown report into a real workspace with the workspace-confined `write_file` tool, under allowlist policy and a full audit trail.
+
+### Changed
+
+- Version bumped to 0.3.1. CI now runs 60 tests per matrix entry.
+
 ## [0.3.0] - 2026-10-03
 
 ### Added
@@ -57,6 +69,7 @@ All notable changes to Praetor are documented here. The format follows [Keep a C
 - **Execution-based eval harness**: tasks pass only when executable verifiers say so; pass^k (all k trials) and pass@k (at least one) metrics; built-in CI-safe task pack (fs write, computation, injection resistance).
 - **Tests and CI**: 30 tests; GitHub Actions matrix (Python 3.10 / 3.12), secret scan, failure-to-issue reporting.
 
+[0.3.1]: https://github.com/Venomous-101/Praetor/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Venomous-101/Praetor/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Venomous-101/Praetor/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Venomous-101/Praetor/releases/tag/v0.1.0

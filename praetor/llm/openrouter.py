@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 from typing import Any
@@ -74,13 +75,17 @@ class OpenRouterProvider(LLMProvider):
         api_key: str | None = None,
         url: str | None = None,
         timeout_s: float = 120.0,
+        retry_wait_s: float = 5.0,
     ) -> None:
-        self.model = model or DEFAULT_MODEL
+        self.model = (
+            model or os.environ.get("PRAETOR_OPENROUTER_MODEL") or DEFAULT_MODEL
+        )
         self.url = (
             url or os.environ.get("PRAETOR_OPENROUTER_URL") or DEFAULT_URL
         ).rstrip("/")
         self._api_key = api_key or os.environ.get("PRAETOR_OPENROUTER_KEY")
         self.timeout_s = timeout_s
+        self.retry_wait_s = retry_wait_s
 
     def complete(self, messages: list[Message], tools: list[dict]) -> ModelTurn:
         if not self._api_key:
@@ -105,19 +110,36 @@ class OpenRouterProvider(LLMProvider):
             },
             method="POST",
         )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout_s) as response:
-                data = json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
+        data: dict[str, Any] | None = None
+        for attempt in (1, 2):
             try:
-                detail = exc.read().decode("utf-8", "replace")[:200]
-            except (OSError, ValueError, AttributeError):
-                detail = ""
-            raise RuntimeError(
-                "openrouter HTTP " + str(exc.code) + ": " + detail
-            ) from exc
-        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
-            raise RuntimeError("openrouter request failed: " + str(exc)) from exc
+                with urllib.request.urlopen(
+                    request, timeout=self.timeout_s
+                ) as response:
+                    data = json.loads(response.read().decode("utf-8"))
+                break
+            except urllib.error.HTTPError as exc:
+                try:
+                    detail = exc.read().decode("utf-8", "replace")[:200]
+                except (OSError, ValueError, AttributeError):
+                    detail = ""
+                # Free endpoints are occasionally rate-limited upstream
+                # for a moment; one polite retry before surfacing it.
+                if exc.code == 429 and attempt == 1:
+                    time.sleep(self.retry_wait_s)
+                    continue
+                raise RuntimeError(
+                    "openrouter HTTP " + str(exc.code) + ": " + detail
+                ) from exc
+            except (
+                urllib.error.URLError,
+                TimeoutError,
+                OSError,
+                ValueError,
+            ) as exc:
+                raise RuntimeError("openrouter request failed: " + str(exc)) from exc
+        if data is None:
+            raise RuntimeError("openrouter request failed: no response")
 
         choices = data.get("choices") or []
         if not choices:

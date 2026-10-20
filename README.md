@@ -6,7 +6,7 @@
 [![PyPI](https://img.shields.io/pypi/v/praetor-agent?label=pypi%3A%20praetor-agent)](https://pypi.org/project/praetor-agent/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)]()
-[![Version](https://img.shields.io/badge/version-0.3.0-blue)]()
+[![Version](https://img.shields.io/badge/version-0.3.1-blue)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)]()
 
 Praetor is named after the Roman magistrate whose job was to hold the line while everyone else ran wild. This library holds the line between an AI agent and the systems it touches.
@@ -70,6 +70,8 @@ python examples/quickstart.py        # deterministic end-to-end run, no model ne
 python examples/run_benchmark.py    # built-in eval suite, pass^k report
 python examples/export_trace.py      # OTel GenAI-aligned JSONL trace export
 python examples/security_drill.py    # live pentest of all five security guarantees
+python examples/real_work.py         # a real cloud model doing a real multi-tool task
+                                     # (needs PRAETOR_OPENROUTER_KEY)
 ```
 
 Connecting a real local model (Ollama):
@@ -93,7 +95,8 @@ from praetor.runtime.agent import Agent
 from praetor.tools.exec import PythonTool
 
 os.environ.setdefault("PRAETOR_OPENROUTER_KEY", "<your key>")
-agent = Agent(OpenRouterProvider(), tools=[PythonTool()])  # defaults to a free model
+agent = Agent(OpenRouterProvider(), tools=[PythonTool()])  # free model by default;
+# set PRAETOR_OPENROUTER_MODEL to pick any other OpenRouter model.
 ```
 
 ## Using the runtime
@@ -206,7 +209,7 @@ docs/                 # publishing guide
 
 ## Testing and CI
 
-- **57 tests** across eight files: unit suites for the runtime, tools, sandbox, schema, eval, and the OpenRouter provider (fully mocked HTTP, no network in CI), plus an adversarial stress suite (path-traversal fuzzing, size-cap enforcement, budget exhaustion under adversarial loops, injection storms, determinism).
+- **60 tests** across eight files: unit suites for the runtime, tools, sandbox, schema, eval, and the OpenRouter provider (fully mocked HTTP, no network in CI), plus an adversarial stress suite (path-traversal fuzzing, size-cap enforcement, budget exhaustion under adversarial loops, injection storms, determinism).
 - CI runs the full suite on Python 3.10 and 3.12, a clean-venv install smoke test on 3.11 (installs the built package into a fresh virtualenv and runs an end-to-end agent task), and a secret scan.
 - A failing test step automatically files a GitHub issue with the full log for fast diagnosis.
 
