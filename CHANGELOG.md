@@ -2,6 +2,18 @@
 
 All notable changes to Praetor are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-10-20
+
+### Added
+
+- **Web Console** (`python -m praetor.server`, or `examples/web_console.py`): a zero-dependency browser UI plus localhost API server, so non-technical users can run Praetor without touching a terminal. A clean dark-themed page offers a task box, optional model override, a step-budget slider, and one-click runs; results render as a step timeline (tool, arguments, outcome, duration), audit notes, token usage chips, and a downloadable OTel GenAI-aligned trace (.jsonl).
+  - Security posture: binds to 127.0.0.1 by default (a local tool, not a public service); static files are served from a fixed whitelist — no filesystem browsing; request bodies are capped and validated before any run; every run goes through the full Praetor security layer (default-deny policy, schema validation, integrity guard, sandboxed execution, untrusted-data envelope); and the API key never leaves the environment — no storage, no logging, no echo in any response.
+  - Nine new tests exercise the real server over localhost HTTP with a scripted provider: health endpoint, full scripted run (compute via the sandboxed `python` tool), missing/invalid task, invalid JSON, oversized body (413), out-of-range step budget, unknown paths (404), and static asset serving with correct content types.
+
+### Changed
+
+- Version bumped to 0.4.0. CI now runs 69 tests per matrix entry.
+
 ## [0.3.1] - 2026-10-20
 
 ### Added
@@ -69,6 +81,7 @@ All notable changes to Praetor are documented here. The format follows [Keep a C
 - **Execution-based eval harness**: tasks pass only when executable verifiers say so; pass^k (all k trials) and pass@k (at least one) metrics; built-in CI-safe task pack (fs write, computation, injection resistance).
 - **Tests and CI**: 30 tests; GitHub Actions matrix (Python 3.10 / 3.12), secret scan, failure-to-issue reporting.
 
+[0.4.0]: https://github.com/Venomous-101/Praetor/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Venomous-101/Praetor/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Venomous-101/Praetor/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Venomous-101/Praetor/compare/v0.1.0...v0.2.0

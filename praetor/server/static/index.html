@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Praetor Console</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">&#9876;</span>
+    <div>
+      <h1>Praetor Console</h1>
+      <p class="tagline">Security-first agent runtime &mdash; real model, supervised tools, real work.</p>
+    </div>
+  </div>
+  <div class="pills">
+    <span class="pill" id="pill-version">v&hellip;</span>
+    <span class="pill" id="pill-model">model&hellip;</span>
+    <span class="pill" id="pill-key">checking&hellip;</span>
+  </div>
+</header>
+
+<main>
+  <section class="card" id="composer">
+    <label class="label" for="task">Task</label>
+    <textarea id="task" rows="4" placeholder="e.g. Compute the 30th Fibonacci number with the python tool, then write a markdown report to report.md."></textarea>
+    <div class="row">
+      <div class="field grow">
+        <label class="label" for="model">Model override <small>(optional)</small></label>
+        <input id="model" type="text" placeholder="default: current free OpenRouter model">
+      </div>
+      <div class="field">
+        <label class="label" for="steps">Max steps: <output id="steps-out">12</output></label>
+        <input id="steps" type="range" min="1" max="16" value="12">
+      </div>
+    </div>
+    <button id="run" class="primary">Run agent</button>
+  </section>
+
+  <section id="status-banner" class="banner hidden"></section>
+
+  <section class="card hidden" id="results">
+    <h2>Answer</h2>
+    <div id="answer" class="answer"></div>
+
+    <h2>Steps</h2>
+    <ol id="steps-list" class="timeline"></ol>
+
+    <h2>Run details</h2>
+    <div id="metrics" class="metrics"></div>
+
+    <h2>Audit notes</h2>
+    <ul id="audit" class="audit"></ul>
+
+    <div class="actions">
+      <button id="download" class="secondary">Download trace (.jsonl)</button>
+      <span id="workspace" class="workspace"></span>
+    </div>
+  </section>
+
+  <section class="card hidden error-card" id="error-card">
+    <h2>Something went wrong</h2>
+    <p id="error-text"></p>
+  </section>
+</main>
+
+<footer class="strip">
+  <span>Default-deny policy</span>
+  <span>Schema validation</span>
+  <span>Integrity guard</span>
+  <span>Sandboxed execution</span>
+  <span>Audit trail</span>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>

@@ -6,7 +6,7 @@
 [![PyPI](https://img.shields.io/pypi/v/praetor-agent?label=pypi%3A%20praetor-agent)](https://pypi.org/project/praetor-agent/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)]()
-[![Version](https://img.shields.io/badge/version-0.3.1-blue)]()
+[![Version](https://img.shields.io/badge/version-0.4.0-blue)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)]()
 
 Praetor is named after the Roman magistrate whose job was to hold the line while everyone else ran wild. This library holds the line between an AI agent and the systems it touches.
@@ -72,6 +72,7 @@ python examples/export_trace.py      # OTel GenAI-aligned JSONL trace export
 python examples/security_drill.py    # live pentest of all five security guarantees
 python examples/real_work.py         # a real cloud model doing a real multi-tool task
                                      # (needs PRAETOR_OPENROUTER_KEY)
+python -m praetor.server             # Web Console: run agents from the browser
 ```
 
 Connecting a real local model (Ollama):
@@ -98,6 +99,19 @@ os.environ.setdefault("PRAETOR_OPENROUTER_KEY", "<your key>")
 agent = Agent(OpenRouterProvider(), tools=[PythonTool()])  # free model by default;
 # set PRAETOR_OPENROUTER_MODEL to pick any other OpenRouter model.
 ```
+
+## Web Console
+
+Not a terminal person? The built-in console gives Praetor a browser UI — still zero dependencies:
+
+```bash
+set PRAETOR_OPENROUTER_KEY=<your key>     # Windows
+python -m praetor.server                  # then open http://127.0.0.1:8756
+```
+
+Run supervised tasks from a clean dark-themed page: task box, optional model override, step-budget slider, and one-click runs. Results render as a step timeline (tool, arguments, outcome, duration), plus audit notes, token usage, and a downloadable OTel-aligned trace (.jsonl).
+
+The console keeps the same security posture as the library: it binds to **localhost only**, serves static files from a fixed whitelist (no filesystem browsing), caps request sizes, routes every run through the full security layer, and never sees or stores your API key — the key stays in the environment, exactly like the CLI.
 
 ## Using the runtime
 
@@ -202,20 +216,21 @@ praetor/
   llm/                # provider protocol: Ollama (local), OpenRouter (cloud), scripted replay
   eval/               # execution-based harness, benchmark task pack
   observability/      # OTel GenAI-aligned trace export and run summaries
-examples/             # quickstart, benchmark, trace export, security drill, real-model agents
+  server/             # zero-dependency web console: browser UI + localhost API
+examples/             # quickstart, benchmark, trace export, security drill, real-model agents, web console
 tests/                # unit + adversarial stress suites
 docs/                 # publishing guide
 ```
 
 ## Testing and CI
 
-- **60 tests** across eight files: unit suites for the runtime, tools, sandbox, schema, eval, and the OpenRouter provider (fully mocked HTTP, no network in CI), plus an adversarial stress suite (path-traversal fuzzing, size-cap enforcement, budget exhaustion under adversarial loops, injection storms, determinism).
+- **69 tests** across nine files: unit suites for the runtime, tools, sandbox, schema, eval, the OpenRouter provider (fully mocked HTTP, no network in CI), and the web console (real localhost HTTP with a scripted provider), plus an adversarial stress suite (path-traversal fuzzing, size-cap enforcement, budget exhaustion under adversarial loops, injection storms, determinism).
 - CI runs the full suite on Python 3.10 and 3.12, a clean-venv install smoke test on 3.11 (installs the built package into a fresh virtualenv and runs an end-to-end agent task), and a secret scan.
 - A failing test step automatically files a GitHub issue with the full log for fast diagnosis.
 
 ## Roadmap
 
-- **v0.4** — sandbox network egress control (default-deny outbound), signed tool packs
+- **v0.5** — sandbox network egress control (default-deny outbound), signed tool packs
 - **v1.0** — optional OTLP exporter (as an install extra, keeping the core zero-dependency), docs site
 
 ## Changelog
