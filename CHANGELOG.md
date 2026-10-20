@@ -81,8 +81,8 @@ All notable changes to Praetor are documented here. The format follows [Keep a C
 - **Execution-based eval harness**: tasks pass only when executable verifiers say so; pass^k (all k trials) and pass@k (at least one) metrics; built-in CI-safe task pack (fs write, computation, injection resistance).
 - **Tests and CI**: 30 tests; GitHub Actions matrix (Python 3.10 / 3.12), secret scan, failure-to-issue reporting.
 
-[0.4.0]: https://github.com/Venomous-101/Praetor/compare/v0.3.1...v0.4.0
-[0.3.1]: https://github.com/Venomous-101/Praetor/compare/v0.3.0...v0.3.1
+[0.4.0]: https://github.com/Venomous-101/Praetor/compare/c827000a8eafed1e07d3b0421cd595623176eeda...v0.4.0
+[0.3.1]: https://github.com/Venomous-101/Praetor/compare/6b2bc2ce36ac5d4341b635bf25541a56b4f1d7f8...c827000a8eafed1e07d3b0421cd595623176eeda
 [0.3.0]: https://github.com/Venomous-101/Praetor/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Venomous-101/Praetor/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Venomous-101/Praetor/releases/tag/v0.1.0

@@ -17,7 +17,7 @@ Praetor publishes to PyPI automatically using **trusted publishing**: PyPI verif
 ## Publishing a release
 
 1. Make sure `version` in `pyproject.toml` and `__version__` in `praetor/__init__.py` match.
-2. Publish a GitHub release (for example tag `v0.3.0` on `main`).
+2. Publish a GitHub release (for example tag `v0.4.0` on `main`).
 3. The `Publish to PyPI` workflow builds the sdist and wheel and uploads them automatically.
 4. Users can then install with:
 
